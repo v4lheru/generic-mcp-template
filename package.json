@@ -1,0 +1,44 @@
+{
+    "name": "generic-mcp-template",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Generic MCP Server Template - A modular foundation for building MCP servers",
+    "type": "module",
+    "main": "build/index.js",
+    "bin": {
+        "generic-mcp-server": "build/index.js"
+    },
+    "files": [
+        "build",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+        "start": "node build/index.js",
+        "dev": "tsc -w",
+        "prepare": "npm run build",
+        "test": "echo \"No tests specified\" && exit 0"
+    },
+    "keywords": [
+        "mcp",
+        "ai",
+        "model-context-protocol",
+        "template",
+        "server"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "0.6.0",
+        "axios": "^1.6.7",
+        "dotenv": "^16.4.1"
+    },
+    "devDependencies": {
+        "@types/node": "^20.11.16",
+        "typescript": "^5.3.3"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}
