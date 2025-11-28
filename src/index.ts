@@ -1,130 +1,120 @@
-import express from 'express';
-import { config, validateConfig } from './config';
-import { apiClient } from './api-client';
+#!/usr/bin/env node
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  CallToolRequestSchema,
+  ErrorCode,
+  ListResourcesRequestSchema,
+  ListToolsRequestSchema,
+  McpError,
+  ReadResourceRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import { zodToJsonSchema } from "zod-to-json-schema";
+import { TOOLS } from "./tools.js";
+import { RESOURCES } from "./resources.js";
 
-// Validate configuration
-validateConfig();
+/**
+ * Create an MCP server with capabilities for resources (to list/read data)
+ * and tools (to execute code).
+ */
+const server = new Server(
+  {
+    name: "generic-mcp-server",
+    version: "0.1.0",
+  },
+  {
+    capabilities: {
+      resources: {},
+      tools: {},
+    },
+  }
+);
 
-// Create Express app
-const app = express();
-app.use(express.json());
-
-// Basic health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+/**
+ * Handler for listing available resources
+ */
+server.setRequestHandler(ListResourcesRequestSchema, async () => {
+  return {
+    resources: Object.values(RESOURCES).map((resource) => ({
+      uri: resource.uri,
+      mimeType: resource.mimeType,
+      name: resource.name,
+      description: resource.description,
+    })),
+  };
 });
 
-// MCP server info endpoint
-app.get('/mcp-info', (req, res) => {
-  res.json({
-    name: 'Generic MCP Server',
-    version: '0.1.0',
-    tools: [
-      {
-        name: 'example_tool',
-        description: 'An example tool that demonstrates the MCP server functionality',
-        parameters: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'The query parameter for the API call'
-            },
-            limit: {
-              type: 'integer',
-              description: 'Maximum number of results to return',
-              default: 10
-            }
-          },
-          required: ['query']
-        }
-      }
-    ],
-    resources: [
-      {
-        name: 'example_resource',
-        description: 'An example resource provided by this MCP server'
-      }
-    ]
-  });
+/**
+ * Handler for reading the contents of a specific resource
+ */
+server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+  const resource = Object.values(RESOURCES).find(
+    (r) => r.uri === request.params.uri
+  );
+
+  if (!resource) {
+    throw new McpError(
+      ErrorCode.InvalidRequest,
+      `Resource not found: ${request.params.uri}`
+    );
+  }
+
+  return resource.handler();
 });
 
-// Example tool endpoint
-app.post('/tools/example_tool', async (req, res) => {
+/**
+ * Handler for listing available tools
+ */
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: Object.entries(TOOLS).map(([name, tool]) => ({
+      name,
+      description: tool.description,
+      inputSchema: zodToJsonSchema(tool.inputSchema),
+    })),
+  };
+});
+
+/**
+ * Handler for calling a tool
+ */
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const toolName = request.params.name;
+  const tool = TOOLS[toolName as keyof typeof TOOLS];
+
+  if (!tool) {
+    throw new McpError(
+      ErrorCode.MethodNotFound,
+      `Unknown tool: ${toolName}`
+    );
+  }
+
   try {
-    const { query, limit = 10 } = req.body;
-    
-    if (!query) {
-      return res.status(400).json({ error: 'Missing required parameter: query' });
+    const args = tool.inputSchema.parse(request.params.arguments);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return await tool.handler(args as any);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Invalid arguments: ${error.message}`
+      );
     }
-    
-    // Example API call using the generic client
-    const results = await apiClient.get('example/endpoint', {
-      q: query,
-      limit: limit.toString()
-    });
-    
-    res.json({
-      results,
-      metadata: {
-        query,
-        limit,
-        timestamp: new Date().toISOString()
-      }
-    });
-  } catch (error) {
-    console.error('Error in example_tool:', error);
-    res.status(500).json({ 
-      error: 'An error occurred while processing the request',
-      message: error instanceof Error ? error.message : String(error)
-    });
+    throw error;
   }
 });
 
-// Example resource endpoint
-app.get('/resources/example_resource', async (req, res) => {
-  try {
-    const data = {
-      name: 'Example Resource',
-      description: 'This is an example resource provided by the MCP server',
-      timestamp: new Date().toISOString(),
-      data: {
-        // Example data that would be returned by your API
-        items: [
-          { id: 1, name: 'Item 1' },
-          { id: 2, name: 'Item 2' },
-          { id: 3, name: 'Item 3' }
-        ]
-      }
-    };
-    
-    res.json(data);
-  } catch (error) {
-    console.error('Error in example_resource:', error);
-    res.status(500).json({ 
-      error: 'An error occurred while processing the request',
-      message: error instanceof Error ? error.message : String(error)
-    });
-  }
-});
+/**
+ * Start the server using stdio transport.
+ * This allows the server to communicate via standard input/output streams.
+ */
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("Generic MCP Server running on stdio");
+}
 
-// Start the server
-const port = config.server.port;
-app.listen(port, () => {
-  console.log(`🚀 MCP Server running at http://localhost:${port}`);
-  console.log(`📝 Environment: ${config.server.env}`);
-  console.log(`🔑 API Key: ${config.api.key ? 'Configured' : 'Not configured'}`);
-  console.log(`🔍 Health check: http://localhost:${port}/health`);
-  console.log(`ℹ️ MCP Info: http://localhost:${port}/mcp-info`);
-});
-
-// Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
-  process.exit(0);
+main().catch((error) => {
+  console.error("Server error:", error);
+  process.exit(1);
 });

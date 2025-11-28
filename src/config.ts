@@ -15,17 +15,17 @@ export const config = {
     cacheTtlSeconds: parseInt(process.env.CACHE_TTL_SECONDS || '300', 10),
     rateLimitPerSecond: parseInt(process.env.RATE_LIMIT_PER_SECOND || '10', 10),
   },
-  
+
   // Server configuration
   server: {
     port: parseInt(process.env.PORT || '3000', 10),
     env: process.env.NODE_ENV || 'development',
   },
-  
+
   // Logging configuration
   logging: {
     level: process.env.LOG_LEVEL || 'info',
-    directory: process.env.LOG_DIRECTORY || path.join(__dirname, '../logs'),
+    directory: process.env.LOG_DIRECTORY || './logs',
   },
 };
 
@@ -36,6 +36,6 @@ export function validateConfig(): void {
   if (!config.api.key) {
     console.warn('⚠️ API_KEY is not set. Some functionality may be limited.');
   }
-  
+
   // Add additional validation as needed for your specific API
 }

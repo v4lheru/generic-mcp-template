@@ -1,40 +1,31 @@
 # Generic MCP Server Template
 
-A flexible template for creating Model Context Protocol (MCP) servers that provide tools and resources for AI assistants.
+A flexible template for creating Model Context Protocol (MCP) servers using the official TypeScript SDK.
 
 ## What is MCP?
 
-The Model Context Protocol (MCP) enables communication between AI assistants and locally running servers that provide additional tools and resources to extend the AI's capabilities. MCP servers can:
-
-- Provide **tools** that AI assistants can use to perform actions
-- Expose **resources** that AI assistants can access for information
-- Connect AI assistants to external APIs, databases, and services
-- Enable AI assistants to interact with local systems and files
+The Model Context Protocol (MCP) enables communication between AI assistants and locally running servers that provide additional tools and resources.
 
 ## Features
 
-This template provides:
-
-- A complete TypeScript project structure for building MCP servers
-- Configuration management with environment variables
-- A generic API client with caching and error handling
-- Express server setup with MCP-compatible endpoints
-- Example tool and resource implementations
-- TypeScript type definitions for better development experience
+- **Official SDK**: Built with `@modelcontextprotocol/sdk`
+- **Type Safety**: Full TypeScript support with Zod validation
+- **Stdio Transport**: Standard transport for local agent integration
+- **Modular Design**: Easy to add new tools and resources
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v14 or later)
+- Node.js (v16 or later)
 - npm or yarn
 
 ### Installation
 
-1. Clone this repository or use it as a template:
+1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/generic-mcp-server.git your-mcp-server
-   cd your-mcp-server
+   git clone https://github.com/yourusername/generic-mcp-server.git
+   cd generic-mcp-server
    ```
 
 2. Install dependencies:
@@ -42,97 +33,41 @@ This template provides:
    npm install
    ```
 
-3. Create a `.env` file based on the example:
+3. Build the project:
    ```bash
-   cp .env.example .env
+   npm run build
    ```
 
-4. Edit the `.env` file to add your API keys and configuration.
+### Usage
 
-### Development
-
-Start the development server with hot reloading:
-
-```bash
-npm run dev
-```
-
-### Building
-
-Build the project for production:
-
-```bash
-npm run build
-```
-
-### Running in Production
-
-Start the server in production mode:
-
+To run the server locally (for testing or development):
 ```bash
 npm run start
 ```
 
-## Customizing the Template
+Note: This server uses `stdio` transport, so it expects to communicate via standard input/output. It will not start an HTTP server.
 
-### 1. Update Package Information
+### Adding to Claude Desktop
 
-Edit `package.json` to update the name, version, description, and other metadata.
+1. Open Claude Desktop config (e.g. `~/Library/Application Support/Claude/claude_desktop_config.json` on macOS).
+2. Add your server:
 
-### 2. Configure Your API
+```json
+{
+  "mcpServers": {
+    "my-server": {
+      "command": "node",
+      "args": ["/path/to/generic-mcp-server/dist/index.js"]
+    }
+  }
+}
+```
 
-Update `src/config.ts` to include the configuration options needed for your specific API.
+## Customization
 
-### 3. Implement Your API Client
-
-Modify `src/api-client.ts` to implement the specific API calls needed for your service.
-
-### 4. Define Your Tools and Resources
-
-In `src/index.ts`, update the `/mcp-info` endpoint to define the tools and resources your MCP server will provide.
-
-### 5. Implement Tool Endpoints
-
-Create endpoints for each tool in the format `/tools/{tool_name}` that accept POST requests with the tool parameters.
-
-### 6. Implement Resource Endpoints
-
-Create endpoints for each resource in the format `/resources/{resource_name}` that return the resource data.
-
-## Adding to AI Assistants
-
-### Claude Desktop
-
-1. Open Claude Desktop settings
-2. Navigate to the MCP Servers section
-3. Add a new server with the following configuration:
-   - Name: Your MCP Server Name
-   - Type: command
-   - Command: node
-   - Arguments: /path/to/your-mcp-server/dist/index.js
-   - Environment Variables: Add any required environment variables
-
-### Cursor
-
-1. In Cursor, go to Settings > MCP Servers
-2. Click "Add Server"
-3. Configure the server with:
-   - Name: Your MCP Server Name
-   - Type: command
-   - Command: node
-   - Arguments: /path/to/your-mcp-server/dist/index.js
-   - Environment Variables: Add any required environment variables
-
-## MCP Protocol Details
-
-The MCP protocol defines how AI assistants interact with MCP servers:
-
-- Servers expose an HTTP API with specific endpoints
-- Tools are invoked via POST requests to `/tools/{tool_name}`
-- Resources are accessed via GET requests to `/resources/{resource_name}`
-- Server metadata is available at `/mcp-info`
-
-For more details on the MCP protocol, see the [official documentation](https://github.com/anthropics/anthropic-cookbook/tree/main/model_context_protocol).
+- **Tools**: Add new tools in `src/tools.ts`.
+- **Resources**: Add new resources in `src/resources.ts`.
+- **Config**: Update `src/config.ts` for environment variables.
 
 ## License
 
