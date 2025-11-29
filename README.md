@@ -24,7 +24,7 @@ The Model Context Protocol (MCP) enables communication between AI assistants and
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/generic-mcp-server.git
+   git clone https://github.com/v4lheru/generic-mcp-template.git
    cd generic-mcp-server
    ```
 
